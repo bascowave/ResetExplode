@@ -16,6 +16,7 @@ public partial class MainWindow
             AgentUrl.Text = cfg.Url;
             AgentKey.Password = cfg.Key;
             AgentUnit.Text = cfg.Unit;
+            AgentScripts.IsChecked = cfg.ScriptsEnabled;
         }
         UpdateAgentTask();
     }
@@ -30,7 +31,14 @@ public partial class MainWindow
 
     private async void BtnAgentSave_Click(object sender, RoutedEventArgs e)
     {
-        var cfg = new AgentConfig { Url = AgentUrl.Text.Trim(), Key = AgentKey.Password.Trim(), Unit = AgentUnit.Text.Trim() };
+        var old = AgentConfig.Load();
+        var cfg = new AgentConfig
+        {
+            Url = AgentUrl.Text.Trim(), Key = AgentKey.Password.Trim(), Unit = AgentUnit.Text.Trim(),
+            ScriptsEnabled = AgentScripts.IsChecked == true,
+            // trocar de painel exige registrar a chave de scripts do novo painel
+            ScriptKey = old.Url == AgentUrl.Text.Trim() ? old.ScriptKey : "",
+        };
         if (!cfg.IsSet) { AgentStatus.Text = "Preencha o endereço e a chave."; return; }
         if (!Uri.TryCreate(cfg.Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
         { AgentStatus.Text = "Endereço inválido. Exemplo: https://ti.guimaraesaranha.com.br"; return; }

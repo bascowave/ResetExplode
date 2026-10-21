@@ -856,7 +856,12 @@
                                 <PasswordBox x:Name="AgentKey" Margin="0,0,0,14" Padding="10,8" Background="{DynamicResource Bg}" Foreground="{DynamicResource Fg}"
                                              BorderBrush="{DynamicResource Line}" CaretBrush="{DynamicResource Fg}"/>
                                 <TextBlock Text="UNIDADE" Style="{StaticResource Label}"/>
-                                <TextBox x:Name="AgentUnit" Tag="Matriz, Filial… (vazio = o painel descobre pelo IP)" Margin="0,0,0,16"/>
+                                <TextBox x:Name="AgentUnit" Tag="Matriz, Filial… (vazio = o painel descobre pelo IP)" Margin="0,0,0,14"/>
+                                <CheckBox x:Name="AgentScripts" Margin="0,0,0,4">
+                                    <TextBlock Text="Permitir que a T.I rode scripts neste computador" TextWrapping="Wrap"/>
+                                </CheckBox>
+                                <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap" Margin="26,0,0,16"
+                                           Text="Só são aceitos scripts assinados pelo painel. Cada execução fica registrada no painel."/>
                                 <WrapPanel>
                                     <Button Style="{StaticResource PrimaryButton}" Content="SALVAR E TESTAR" Padding="20,9" Margin="0,0,10,0" Click="BtnAgentSave_Click"/>
                                     <Button x:Name="BtnAgentTask" Style="{StaticResource OutlineButton}" Content="ATIVAR EM SEGUNDO PLANO" Padding="20,9" Click="BtnAgentTask_Click"/>
@@ -868,7 +873,7 @@
                             Enviado: nome do PC, usuário logado, memória, CPU e temperatura, espaço em disco, ping até o roteador e a internet,
                             situação de segurança e validade dos certificados digitais. Nada de arquivos, sites ou programas abertos.
                             Em segundo plano o envio continua com o app fechado (tarefa agendada "TI-GA Agente", inicia com o Windows).
-                            Para várias máquinas: TI-GA.exe --instalar-agente &lt;endereço&gt; &lt;chave&gt; [unidade].
+                            Para várias máquinas: TI-GA.exe --instalar-agente &lt;endereço&gt; &lt;chave&gt; [unidade] [--scripts].
                         </TextBlock>
                     </StackPanel>
                 </ScrollViewer>

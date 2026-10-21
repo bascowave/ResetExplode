@@ -17,6 +17,10 @@ public sealed class AgentConfig
     public string Key { get; set; } = "";
     /// <summary>Matriz, Filial... Vazio = o painel descobre pelo IP público.</summary>
     public string Unit { get; set; } = "";
+    /// <summary>A T.I pode rodar scripts neste computador (desligado por padrão).</summary>
+    public bool ScriptsEnabled { get; set; }
+    /// <summary>Chave pública do painel para conferir a assinatura dos scripts (gravada na primeira conexão).</summary>
+    public string ScriptKey { get; set; } = "";
 
     public static string Folder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "TI-GA");
     private static string FilePath => Path.Combine(Folder, "agente.json");
@@ -31,7 +35,32 @@ public sealed class AgentConfig
     public void Save()
     {
         Directory.CreateDirectory(Folder);
+        Harden();
         File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>
+    /// Só administradores e SYSTEM alteram a pasta (configuração, chave dos scripts, log); usuários só leem.
+    /// Sem isso, um usuário comum poderia trocar a chave pública e mandar scripts para o agente rodar como SYSTEM.
+    /// </summary>
+    private static void Harden()
+    {
+        try
+        {
+            var di = new DirectoryInfo(Folder);
+            var acl = new System.Security.AccessControl.DirectorySecurity();
+            acl.SetAccessRuleProtection(true, false); // não herda do ProgramData
+            const System.Security.AccessControl.InheritanceFlags all =
+                System.Security.AccessControl.InheritanceFlags.ContainerInherit | System.Security.AccessControl.InheritanceFlags.ObjectInherit;
+            void Allow(System.Security.Principal.WellKnownSidType sid, System.Security.AccessControl.FileSystemRights rights) =>
+                acl.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(new System.Security.Principal.SecurityIdentifier(sid, null),
+                    rights, all, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+            Allow(System.Security.Principal.WellKnownSidType.LocalSystemSid, System.Security.AccessControl.FileSystemRights.FullControl);
+            Allow(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, System.Security.AccessControl.FileSystemRights.FullControl);
+            Allow(System.Security.Principal.WellKnownSidType.BuiltinUsersSid, System.Security.AccessControl.FileSystemRights.ReadAndExecute);
+            di.SetAccessControl(acl);
+        }
+        catch { } // sem administrador: mantém como está
     }
 }
 
@@ -50,6 +79,7 @@ public sealed class PanelAgent : IDisposable
     private List<DiskHealthCard> _security = new();
     private DateTime _slowAt = DateTime.MinValue;
     private DateTime _softwareAt = DateTime.MinValue;
+    private static readonly SemaphoreSlim ScriptLock = new(1, 1); // um script por vez
 
     public PanelAgent(SensorMonitor? monitor = null)
     {
@@ -76,6 +106,7 @@ public sealed class PanelAgent : IDisposable
     /// <summary>Envia um relatório agora. Retorna a unidade em que o painel registrou a máquina.</summary>
     public async Task<string> SendAsync(AgentConfig cfg, CancellationToken ct = default)
     {
+        if (cfg.ScriptsEnabled && cfg.ScriptKey.Length == 0) await PinScriptKeyAsync(cfg, ct);
         var body = await BuildAsync(cfg, ct);
         using var req = new HttpRequestMessage(HttpMethod.Post, cfg.Url.TrimEnd('/') + "/api/coleta") { Content = JsonContent.Create(body) };
         req.Headers.Add("X-Agent-Key", cfg.Key);
@@ -83,10 +114,76 @@ public sealed class PanelAgent : IDisposable
         if (res.StatusCode == HttpStatusCode.Unauthorized) throw new InvalidOperationException("chave recusada pelo painel");
         res.EnsureSuccessStatusCode();
         var answer = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        if (answer.TryGetProperty("scripts", out var scripts) && scripts.ValueKind == JsonValueKind.Array && scripts.GetArrayLength() > 0)
+        {
+            var list = scripts.EnumerateArray().Select(x => x.Clone()).ToList();
+            // Roda em segundo plano: um script de 5 min não pode atrasar os envios (a máquina pareceria offline).
+            _ = Task.Run(() => RunScriptsAsync(cfg, list, CancellationToken.None));
+        }
         if (answer.TryGetProperty("commands", out var cmds) && cmds.ValueKind == JsonValueKind.Array)
             foreach (var c in cmds.EnumerateArray())
                 await RunCommandAsync(cfg, c.GetProperty("id").GetInt64(), c.GetProperty("action").GetString() ?? "", ct);
         return answer.TryGetProperty("unit", out var u) ? u.GetString() ?? "" : "";
+    }
+
+    // ---------- scripts ----------
+
+    /// <summary>Busca e guarda a chave pública do painel (confiança no primeiro uso, pela conexão HTTPS).</summary>
+    private static async Task PinScriptKeyAsync(AgentConfig cfg, CancellationToken ct)
+    {
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, cfg.Url.TrimEnd('/') + "/api/agente/chave-scripts");
+            req.Headers.Add("X-Agent-Key", cfg.Key);
+            using var res = await Http.SendAsync(req, ct);
+            res.EnsureSuccessStatusCode();
+            string pem = await res.Content.ReadAsStringAsync(ct);
+            if (!pem.Contains("BEGIN PUBLIC KEY")) throw new InvalidOperationException("resposta inválida");
+            cfg.ScriptKey = pem.Trim();
+            cfg.Save();
+            Log("chave de scripts do painel registrada");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException) { Log("não foi possível obter a chave de scripts: " + ex.Message); }
+    }
+
+    private async Task RunScriptsAsync(AgentConfig cfg, List<JsonElement> scripts, CancellationToken ct)
+    {
+        await ScriptLock.WaitAsync(ct);
+        try
+        {
+            foreach (var sc in scripts)
+            {
+                long runId = sc.GetProperty("runId").GetInt64();
+                string runAs = sc.GetProperty("runAs").GetString() ?? "";
+                string body = sc.GetProperty("body").GetString() ?? "";
+                string sig = sc.GetProperty("signature").GetString() ?? "";
+                ScriptRunner.Result r;
+                if (!cfg.ScriptsEnabled || cfg.ScriptKey.Length == 0)
+                    r = new(-1, "Scripts não liberados neste computador.", false);
+                else if (!ScriptRunner.Verify(cfg.ScriptKey, runId, MachineId(), runAs, body, sig))
+                {
+                    r = new(-1, "Assinatura inválida: script recusado pelo agente.", false);
+                    Log($"script {runId}: ASSINATURA INVÁLIDA, recusado");
+                }
+                else
+                {
+                    Log($"script {runId}: executando como {runAs}");
+                    try { r = await ScriptRunner.RunAsync(runAs, body, ct); }
+                    catch (Exception ex) { r = new(-1, "Falha ao executar: " + ex.Message, false); }
+                    Log($"script {runId}: terminou com código {r.ExitCode}{(r.TimedOut ? " (tempo esgotado)" : "")}");
+                }
+                try
+                {
+                    using var req = new HttpRequestMessage(HttpMethod.Post,
+                        $"{cfg.Url.TrimEnd('/')}/api/scripts/{runId}/resultado?maquina={Uri.EscapeDataString(MachineId())}")
+                    { Content = JsonContent.Create(new { exitCode = r.ExitCode, output = r.Output, timedOut = r.TimedOut }) };
+                    req.Headers.Add("X-Agent-Key", cfg.Key);
+                    using var res = await Http.SendAsync(req, ct);
+                }
+                catch (Exception ex) { Log($"script {runId}: falha ao devolver resultado: {ex.Message}"); }
+            }
+        }
+        finally { ScriptLock.Release(); }
     }
 
     // ---------- ações remotas ----------
@@ -177,6 +274,7 @@ public sealed class PanelAgent : IDisposable
             security = _security.Select(s => new { title = s.Title, label = s.VerdictText, ok = s.Verdict == DiskVerdict.Good }),
             certs = _certs.Select(c => new { name = c.Name, doc = c.Doc, type = c.Type, notAfter = c.NotAfter }),
             anyDeskId = AnyDeskId(),
+            scriptsEnabled = cfg.ScriptsEnabled && cfg.ScriptKey.Length > 0,
             software,
         };
     }

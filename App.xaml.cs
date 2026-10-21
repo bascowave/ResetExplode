@@ -18,13 +18,19 @@ public partial class App : Application
     {
         // TI-GA.exe --agente: envia os dados ao Painel da T.I, sem janela (iniciado pela tarefa agendada).
         if (e.Args.Contains("--agente", StringComparer.OrdinalIgnoreCase)) { RunAgent(); return; }
-        // TI-GA.exe --instalar-agente <url> <chave> [unidade]: configura e ativa o agente (para implantar por GPO/script).
+        // TI-GA.exe --instalar-agente <url> <chave> [unidade] [--scripts]: configura e ativa o agente (para implantar por GPO/script).
         if (e.Args.Length >= 3 && e.Args[0].Equals("--instalar-agente", StringComparison.OrdinalIgnoreCase))
         {
             int code = 0;
             try
             {
-                new AgentConfig { Url = e.Args[1], Key = e.Args[2], Unit = e.Args.Length > 3 ? e.Args[3] : "" }.Save();
+                var rest = e.Args.Skip(3).ToList();
+                new AgentConfig
+                {
+                    Url = e.Args[1], Key = e.Args[2],
+                    Unit = rest.FirstOrDefault(x => !x.StartsWith("--")) ?? "",
+                    ScriptsEnabled = rest.Contains("--scripts", StringComparer.OrdinalIgnoreCase),
+                }.Save();
                 PanelAgent.InstallTask();
                 PanelAgent.Log("agente instalado por linha de comando");
             }
