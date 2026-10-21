@@ -15,7 +15,6 @@ if errorlevel 1 (
     exit /b 1
 )
 copy /y "LEIA-ME.txt" "..\TI-GA-dist\LEIA-ME.txt" >nul
-copy /y "instalar.bat" "..\TI-GA-dist\instalar.bat" >nul
 echo.
 echo Pronto: %~dp0..\TI-GA-dist
 for %%F in ("..\TI-GA-dist\TI-GA.exe") do echo Arquivo gerado em %%~tF (confira se e de agora^)
