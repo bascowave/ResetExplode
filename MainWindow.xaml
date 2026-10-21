@@ -790,7 +790,7 @@
                         <Grid Margin="0,0,0,20">
                             <StackPanel Margin="0,0,160,0">
                                 <TextBlock Text="Segurança" Style="{StaticResource H1}"/>
-                                <TextBlock Text="Antivírus, firewall, atualizações, criptografia do disco e espaço livre" Style="{StaticResource Sub}" TextWrapping="Wrap"/>
+                                <TextBlock Text="Antivírus, firewall, atualizações e espaço livre" Style="{StaticResource Sub}" TextWrapping="Wrap"/>
                             </StackPanel>
                             <Button x:Name="BtnSecScan" Style="{StaticResource PrimaryButton}" Content="VERIFICAR" Padding="22,9"
                                     HorizontalAlignment="Right" VerticalAlignment="Top" Click="BtnSecScan_Click"/>
@@ -798,7 +798,7 @@
                         <TextBlock x:Name="SecStatus" Text="Clique em VERIFICAR." Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Margin="0,0,0,16"/>
                         <ItemsControl x:Name="SecCards" ItemTemplate="{StaticResource CardTemplate}"/>
                         <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap">
-                            Só leitura: a verificação não muda nenhuma configuração. O BitLocker só pode ser lido com o app aberto como administrador.
+                            Só leitura: a verificação não muda nenhuma configuração.
                         </TextBlock>
                     </StackPanel>
                 </ScrollViewer>

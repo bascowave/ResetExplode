@@ -11,7 +11,7 @@ problema na hora ou abrir o chamado já sabendo o que está acontecendo.
 
 **Visão geral**
 - Certificados digitais instalados, com o vencimento mais próximo em destaque.
-- Saúde do PC: antivírus, firewall, Windows Update, BitLocker, espaço no disco e tempo ligado.
+- Saúde do PC: antivírus, firewall, Windows Update, espaço no disco e tempo ligado.
 - Componentes (processador, placa de vídeo, memória e disco), uso de memória e disco, eventos recentes
   e programas da Receita instalados.
 - Aviso no canto da tela ao abrir o app quando há certificado vencido ou vencendo em até 30 dias.
@@ -28,7 +28,7 @@ problema na hora ou abrir o chamado já sabendo o que está acontecendo.
   diagnóstico do token (serviço Cartão Inteligente, leitoras conectadas, drivers SafeNet/SafeSign/Watchdata
   e cadeia raiz da ICP-Brasil). Não acessa a chave privada, então o token não pede PIN.
 - **Segurança** (`SecurityCheck.cs`): antivírus e definições, firewall (inclusive por política de grupo),
-  última atualização do Windows e reinício pendente, BitLocker, espaço livre e tempo ligado. Só leitura.
+  última atualização do Windows e reinício pendente, espaço livre e tempo ligado. Só leitura.
 
 **FERRAMENTAS**
 - **Correções rápidas** (`QuickFixes.cs`): destravar a fila da impressora, renovar a conexão de rede,
@@ -42,7 +42,7 @@ problema na hora ou abrir o chamado já sabendo o que está acontecendo.
 
 ## Requisitos
 - Windows 10 ou 11, 64 bits.
-- O app pede para abrir como administrador (necessário para sensores, BitLocker, fila de impressão e relógio).
+- O app pede para abrir como administrador (necessário para sensores, fila de impressão e relógio).
 - Para temperatura e consumo da CPU: driver PawnIO (`winget install namazso.PawnIO`); o app mostra um botão CORRIGIR quando falta.
 
 ## Compilar

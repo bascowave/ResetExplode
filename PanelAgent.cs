@@ -49,6 +49,7 @@ public sealed class PanelAgent : IDisposable
     private List<CertificateCheck.CertSummary> _certs = new();
     private List<DiskHealthCard> _security = new();
     private DateTime _slowAt = DateTime.MinValue;
+    private DateTime _softwareAt = DateTime.MinValue;
 
     public PanelAgent(SensorMonitor? monitor = null)
     {
@@ -82,7 +83,55 @@ public sealed class PanelAgent : IDisposable
         if (res.StatusCode == HttpStatusCode.Unauthorized) throw new InvalidOperationException("chave recusada pelo painel");
         res.EnsureSuccessStatusCode();
         var answer = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        if (answer.TryGetProperty("commands", out var cmds) && cmds.ValueKind == JsonValueKind.Array)
+            foreach (var c in cmds.EnumerateArray())
+                await RunCommandAsync(cfg, c.GetProperty("id").GetInt64(), c.GetProperty("action").GetString() ?? "", ct);
         return answer.TryGetProperty("unit", out var u) ? u.GetString() ?? "" : "";
+    }
+
+    // ---------- ações remotas ----------
+
+    /// <summary>Executa uma ação pedida pelo painel (só as da lista) e devolve o resultado.</summary>
+    private async Task RunCommandAsync(AgentConfig cfg, long id, string action, CancellationToken ct)
+    {
+        bool ok = true;
+        string msg;
+        Log($"ação {id}: {action}");
+        try
+        {
+            switch (action)
+            {
+                case "restart":
+                    Process.Start(new ProcessStartInfo("shutdown.exe",
+                        "/r /t 300 /c \"A T.I vai reiniciar este computador em 5 minutos. Salve o que estiver aberto.\"") { CreateNoWindow = true })?.WaitForExit(10000);
+                    msg = "Reinício agendado para daqui a 5 minutos (o usuário foi avisado).";
+                    break;
+                case "inventory":
+                    _softwareAt = DateTime.MinValue; // vai junto no próximo envio
+                    msg = "A lista de programas será enviada no próximo minuto.";
+                    break;
+                default:
+                    var fix = QuickFixes.All().FirstOrDefault(f => f.Id == action && f.Id is "print" or "net" or "clock" or "temp")
+                              ?? throw new InvalidOperationException("ação não permitida neste agente");
+                    msg = await fix.Run(ct);
+                    break;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ok = false;
+            msg = ((ex as AggregateException)?.InnerException ?? ex).Message;
+        }
+
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post,
+                $"{cfg.Url.TrimEnd('/')}/api/comandos/{id}/resultado?maquina={Uri.EscapeDataString(MachineId())}")
+            { Content = JsonContent.Create(new { ok, message = msg }) };
+            req.Headers.Add("X-Agent-Key", cfg.Key);
+            using var res = await Http.SendAsync(req, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException) { Log($"ação {id}: falha ao devolver resultado: {ex.Message}"); }
     }
 
     private async Task<object> BuildAsync(AgentConfig cfg, CancellationToken ct)
@@ -93,6 +142,12 @@ public sealed class PanelAgent : IDisposable
             _slowAt = DateTime.Now;
             try { _certs = await Task.Run(CertificateCheck.ReadSummary, ct); } catch { }
             try { _security = await Task.Run(SecurityCheck.Read, ct); } catch { }
+        }
+
+        List<object>? software = null;
+        if ((DateTime.Now - _softwareAt).TotalHours >= 6)
+        {
+            try { software = await Task.Run(InstalledSoftware, ct); _softwareAt = DateTime.Now; } catch { }
         }
 
         var (total, avail) = Optimizer.MemoryStatus();
@@ -121,7 +176,50 @@ public sealed class PanelAgent : IDisposable
             uptimeHours = Math.Round(Environment.TickCount64 / 3600000.0, 1),
             security = _security.Select(s => new { title = s.Title, label = s.VerdictText, ok = s.Verdict == DiskVerdict.Good }),
             certs = _certs.Select(c => new { name = c.Name, doc = c.Doc, type = c.Type, notAfter = c.NotAfter }),
+            anyDeskId = AnyDeskId(),
+            software,
         };
+    }
+
+    // ---------- inventário ----------
+
+    /// <summary>Programas de "Aplicativos instalados": máquina (64 e 32 bits) e cada usuário logado (HKEY_USERS).</summary>
+    private static List<object> InstalledSoftware()
+    {
+        var seen = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        void Read(RegistryKey? root)
+        {
+            if (root == null) return;
+            foreach (var sub in root.GetSubKeyNames())
+            {
+                using var k = root.OpenSubKey(sub);
+                if (k?.GetValue("DisplayName") is not string name || string.IsNullOrWhiteSpace(name)) continue;
+                if (k.GetValue("SystemComponent") is int sc && sc == 1) continue;           // componentes internos do Windows
+                if (k.GetValue("ParentKeyName") != null) continue;                           // atualizações de outro programa
+                string version = (k.GetValue("DisplayVersion") as string ?? "").Trim();
+                seen.TryAdd($"{name.Trim()}|{version}", new { name = name.Trim(), version, publisher = (k.GetValue("Publisher") as string)?.Trim() });
+            }
+        }
+        const string path = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
+        using (var hklm64 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)) Read(hklm64.OpenSubKey(path));
+        using (var hklm32 = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) Read(hklm32.OpenSubKey(path));
+        foreach (var sid in Registry.Users.GetSubKeyNames().Where(x => x.StartsWith("S-1-5-21-") && !x.EndsWith("_Classes")))
+            Read(Registry.Users.OpenSubKey($@"{sid}\{path}"));
+        return seen.Values.ToList();
+    }
+
+    /// <summary>ID do AnyDesk (instalado como serviço) em %ProgramData%\AnyDesk\system.conf.</summary>
+    private static string? AnyDeskId()
+    {
+        try
+        {
+            string conf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), @"AnyDesk\system.conf");
+            if (!File.Exists(conf)) return null;
+            foreach (var line in File.ReadLines(conf))
+                if (line.StartsWith("ad.anynet.id=")) return line["ad.anynet.id=".Length..].Trim();
+        }
+        catch { }
+        return null;
     }
 
     // ---------- rede ----------

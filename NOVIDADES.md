@@ -6,7 +6,7 @@ Primeira versão da ferramenta de suporte da T.I da Guimarães Aranha, feita a p
 - **Certificados digitais**: certificados ICP-Brasil A1 e A3 com CNPJ/CPF e validade, diagnóstico do token
   e aviso ao abrir o app quando algum certificado está vencido ou vence em até 30 dias.
 - **Programas da Receita**: verifica Receitanet, IRPF, DCTF, PER/DCOMP, SPED e Java, com link para o download oficial.
-- **Segurança**: antivírus, firewall, Windows Update, BitLocker, espaço em disco e tempo ligado.
+- **Segurança**: antivírus, firewall, Windows Update, espaço em disco e tempo ligado.
 - **Correções rápidas**: impressora travada, rede, relógio, arquivos temporários, Explorador de Arquivos e unidades de rede.
 - **Visão geral** refeita para o escritório: certificados, saúde do PC, componentes e programas da Receita.
 - **Relatório exportado** agora traz segurança, certificados e programas da Receita.

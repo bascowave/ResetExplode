@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Management;
 using Microsoft.Win32;
@@ -6,7 +6,7 @@ using Microsoft.Win32;
 namespace ResetExplode;
 
 /// <summary>
-/// Situação de segurança do PC: antivírus, firewall, Windows Update, BitLocker, espaço no disco do sistema e tempo ligado.
+/// Situação de segurança do PC: antivírus, firewall, Windows Update, espaço no disco do sistema e tempo ligado.
 /// Só leitura: nada é alterado.
 /// </summary>
 public static class SecurityCheck
@@ -14,7 +14,7 @@ public static class SecurityCheck
     public static List<DiskHealthCard> Read()
     {
         var cards = new List<DiskHealthCard>();
-        foreach (var f in new Func<DiskHealthCard>[] { Antivirus, Firewall, WindowsUpdate, BitLocker, SystemDisk, Uptime })
+        foreach (var f in new Func<DiskHealthCard>[] { Antivirus, Firewall, WindowsUpdate, SystemDisk, Uptime })
         {
             try { cards.Add(f()); }
             catch (Exception ex)
@@ -120,31 +120,6 @@ public static class SecurityCheck
             return Card("Windows Update", DiskVerdict.Warning, "ATRASADO", $"última há {days} dias",
                         "Nenhuma atualização há mais de 45 dias. Abra Configurações > Windows Update e verifique.", metrics);
         return Card("Windows Update", DiskVerdict.Good, "EM DIA", $"última há {days} dia(s)", "Atualizações recentes instaladas.", metrics);
-    }
-
-    // ---------- BitLocker ----------
-
-    private static DiskHealthCard BitLocker()
-    {
-        string sys = Path.GetPathRoot(Environment.SystemDirectory)!.TrimEnd('\\');
-        try
-        {
-            using var q = new ManagementObjectSearcher(@"root\cimv2\Security\MicrosoftVolumeEncryption",
-                $"SELECT ProtectionStatus FROM Win32_EncryptableVolume WHERE DriveLetter='{sys}'");
-            foreach (ManagementObject o in q.Get())
-            {
-                bool on = Convert.ToUInt32(o["ProtectionStatus"]) == 1;
-                return on
-                    ? Card("BitLocker", DiskVerdict.Good, "PROTEGIDO", $"disco {sys} criptografado", "Se o notebook for perdido, os dados ficam protegidos.")
-                    : Card("BitLocker", DiskVerdict.Warning, "DESLIGADO", $"disco {sys} sem criptografia",
-                           "Recomendado em notebooks: sem BitLocker, quem pegar o disco lê os arquivos dos clientes.");
-            }
-        }
-        catch (ManagementException) { }
-        catch (UnauthorizedAccessException) { }
-        return Card("BitLocker", DiskVerdict.Unknown, "SEM DADOS", "", SensorMonitor.IsElevated
-            ? "BitLocker não disponível nesta edição do Windows (Home)."
-            : "Abra o app como administrador para verificar o BitLocker.");
     }
 
     // ---------- Disco do sistema ----------
