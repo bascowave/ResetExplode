@@ -231,12 +231,13 @@ public partial class MainWindow : Window
             case "PageGov": RefreshGov(); break;
             case "PageSecurity": RefreshSecurity(); break;
             case "PageFixes": InitFixes(); break;
+            case "PageAgent": InitAgent(); break;
         }
     }
 
     private void ShowPage(string name)
     {
-        foreach (var p in new FrameworkElement[] { PageDash, PageSystem, PageSensors, PageGpu, PageOptimize, PageDriver, PageStartup, PageApps, PageDisks, PageEnergy, PageNet, PageCerts, PageGov, PageSecurity, PageFixes })
+        foreach (var p in new FrameworkElement[] { PageDash, PageSystem, PageSensors, PageGpu, PageOptimize, PageDriver, PageStartup, PageApps, PageDisks, PageEnergy, PageNet, PageCerts, PageGov, PageSecurity, PageFixes, PageAgent })
             p.Visibility = p.Name == name ? Visibility.Visible : Visibility.Collapsed;
     }
 

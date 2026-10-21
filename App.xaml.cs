@@ -16,8 +16,25 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // TI-GA.exe --agente: envia os dados ao Painel da T.I, sem janela (iniciado pela tarefa agendada).
+        if (e.Args.Contains("--agente", StringComparer.OrdinalIgnoreCase)) { RunAgent(); return; }
+        // TI-GA.exe --instalar-agente <url> <chave> [unidade]: configura e ativa o agente (para implantar por GPO/script).
+        if (e.Args.Length >= 3 && e.Args[0].Equals("--instalar-agente", StringComparison.OrdinalIgnoreCase))
+        {
+            int code = 0;
+            try
+            {
+                new AgentConfig { Url = e.Args[1], Key = e.Args[2], Unit = e.Args.Length > 3 ? e.Args[3] : "" }.Save();
+                PanelAgent.InstallTask();
+                PanelAgent.Log("agente instalado por linha de comando");
+            }
+            catch (Exception ex) { PanelAgent.Log("falha ao instalar: " + ex.Message); code = 1; }
+            Shutdown(code);
+            return;
+        }
+
         bool first;
-        try { _single = new Mutex(true, @"Local\ResetExplode.SingleInstance", out first); }
+        try { _single = new Mutex(true, @"Local\TI-GA.SingleInstance", out first); }
         catch (UnauthorizedAccessException) { first = false; } // criado por outra instância com outro nível de permissão
 
         if (!first)
@@ -33,5 +50,16 @@ public partial class App : Application
         }
         base.OnStartup(e);
         new MainWindow().Show();
+    }
+
+    private void RunAgent()
+    {
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        // Uma cópia só do agente no PC inteiro (Global: vale entre sessões).
+        _single = new Mutex(true, @"Global\TI-GA.Agent", out bool first);
+        if (!first) { Shutdown(); return; }
+        PanelAgent.Log("agente iniciado");
+        var agent = new PanelAgent();
+        Task.Run(() => agent.RunAsync(CancellationToken.None));
     }
 }

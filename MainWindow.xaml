@@ -272,6 +272,12 @@
                                     <TextBlock Text="Drivers" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton x:Name="NavAgent" Style="{StaticResource NavItem}" Tag="PageAgent" Checked="Nav_Checked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE968;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Painel da T.I" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
@@ -832,6 +838,38 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Painel da T.I (agente) ===== -->
+                <ScrollViewer x:Name="PageAgent" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="36,30,36,30" MaxWidth="900" HorizontalAlignment="Left">
+                        <StackPanel Margin="0,0,0,20">
+                            <TextBlock Text="Painel da T.I" Style="{StaticResource H1}"/>
+                            <TextBlock Text="Envia a situação deste computador ao painel web da T.I a cada minuto" Style="{StaticResource Sub}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,14">
+                            <StackPanel>
+                                <TextBlock Text="ENDEREÇO DO PAINEL" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="AgentUrl" Tag="https://ti.guimaraesaranha.com.br" Margin="0,0,0,14"/>
+                                <TextBlock Text="CHAVE DO AGENTE" Style="{StaticResource Label}"/>
+                                <PasswordBox x:Name="AgentKey" Margin="0,0,0,14" Padding="10,8" Background="{DynamicResource Bg}" Foreground="{DynamicResource Fg}"
+                                             BorderBrush="{DynamicResource Line}" CaretBrush="{DynamicResource Fg}"/>
+                                <TextBlock Text="UNIDADE" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="AgentUnit" Tag="Matriz, Filial… (vazio = o painel descobre pelo IP)" Margin="0,0,0,16"/>
+                                <WrapPanel>
+                                    <Button Style="{StaticResource PrimaryButton}" Content="SALVAR E TESTAR" Padding="20,9" Margin="0,0,10,0" Click="BtnAgentSave_Click"/>
+                                    <Button x:Name="BtnAgentTask" Style="{StaticResource OutlineButton}" Content="ATIVAR EM SEGUNDO PLANO" Padding="20,9" Click="BtnAgentTask_Click"/>
+                                </WrapPanel>
+                                <TextBlock x:Name="AgentStatus" TextWrapping="Wrap" Margin="0,14,0,0" Foreground="{DynamicResource Muted}"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap">
+                            Enviado: nome do PC, usuário logado, memória, CPU e temperatura, espaço em disco, ping até o roteador e a internet,
+                            situação de segurança e validade dos certificados digitais. Nada de arquivos, sites ou programas abertos.
+                            Em segundo plano o envio continua com o app fechado (tarefa agendada "TI-GA Agente", inicia com o Windows).
+                            Para várias máquinas: TI-GA.exe --instalar-agente &lt;endereço&gt; &lt;chave&gt; [unidade].
+                        </TextBlock>
                     </StackPanel>
                 </ScrollViewer>
 

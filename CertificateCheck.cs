@@ -1,3 +1,4 @@
+using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
@@ -34,6 +35,66 @@ public static class CertificateCheck
             }
         }
         return cards.OrderBy(x => x.NotAfter).Select(x => x.Card).ToList();
+    }
+
+    public sealed record CertSummary(string Name, string? Doc, string Type, DateTime NotAfter);
+
+    /// <summary>
+    /// Resumo para o Painel da T.I. O agente roda como SYSTEM, então além dos repositórios dele lê o repositório
+    /// "Pessoal" de cada usuário do PC: registro (HKEY_USERS) dos usuários logados e a pasta do perfil de todos.
+    /// </summary>
+    public static List<CertSummary> ReadSummary()
+    {
+        var found = new Dictionary<string, CertSummary>();
+        void Add(X509Certificate2 c)
+        {
+            if (!IsIcpBrasil(c) || found.ContainsKey(c.Thumbprint)) return;
+            var card = BuildCard(c, StoreLocation.CurrentUser);
+            string cn = c.GetNameInfo(X509NameType.SimpleName, false);
+            var m = Regex.Match(cn, @"^(.*?):(\d{11}|\d{14})$");
+            found[c.Thumbprint] = new CertSummary(m.Success ? m.Groups[1].Value.Trim() : cn, m.Success ? FormatDoc(m.Groups[2].Value) : null,
+                                                  card.Metrics.First(k => k.Key == "Tipo").Value, c.NotAfter);
+        }
+        void AddBlob(byte[] blob)
+        {
+            try { using var c = new X509Certificate2(blob); Add(c); } catch { }
+        }
+
+        foreach (var loc in new[] { StoreLocation.CurrentUser, StoreLocation.LocalMachine })
+        {
+            using var store = new X509Store(StoreName.My, loc);
+            try { store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly); } catch { continue; }
+            foreach (var c in store.Certificates) using (c) Add(c);
+        }
+
+        // Usuários com sessão aberta: HKEY_USERS\<SID>\Software\Microsoft\SystemCertificates\My\Certificates\<thumb>\Blob
+        try
+        {
+            foreach (var sid in Microsoft.Win32.Registry.Users.GetSubKeyNames().Where(s => s.StartsWith("S-1-5-21-") && !s.EndsWith("_Classes")))
+            {
+                using var k = Microsoft.Win32.Registry.Users.OpenSubKey($@"{sid}\Software\Microsoft\SystemCertificates\My\Certificates");
+                if (k == null) continue;
+                foreach (var t in k.GetSubKeyNames())
+                    using (var ck = k.OpenSubKey(t))
+                        if (ck?.GetValue("Blob") is byte[] b) AddBlob(b);
+            }
+        }
+        catch { }
+
+        // Todos os perfis (inclusive de quem não está logado): AppData\Roaming\Microsoft\SystemCertificates\My\Certificates
+        try
+        {
+            string users = Path.Combine(Path.GetPathRoot(Environment.SystemDirectory)!, "Users");
+            foreach (var dir in Directory.EnumerateDirectories(users))
+            {
+                string certs = Path.Combine(dir, @"AppData\Roaming\Microsoft\SystemCertificates\My\Certificates");
+                if (!Directory.Exists(certs)) continue;
+                foreach (var f in Directory.EnumerateFiles(certs)) { try { AddBlob(File.ReadAllBytes(f)); } catch { } }
+            }
+        }
+        catch { }
+
+        return found.Values.OrderBy(c => c.NotAfter).ToList();
     }
 
     private static bool IsIcpBrasil(X509Certificate2 c) =>
