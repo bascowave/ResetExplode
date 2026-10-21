@@ -122,8 +122,8 @@
             <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="30,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <Image x:Name="TitleLogo" Source="Assets/logo.png" Width="22" Height="22" Margin="0,0,12,0" VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock Text="RESET" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
-                <TextBlock Text=" EXPLODE" FontWeight="Light" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text="T.I" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text=" - G.A" FontWeight="Light" FontSize="13" VerticalAlignment="Center"/>
                 <TextBlock x:Name="TitlePage" Foreground="{DynamicResource Faint}" FontSize="13" Margin="16,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
@@ -171,7 +171,7 @@
                                 <TextBlock x:Name="SideStress" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="parado" FontFamily="{StaticResource Mono}" FontSize="12" Margin="0,3"/>
                             </Grid>
                         </Border>
-                        <TextBlock x:Name="SideVersion" Text="v0.16" Foreground="{DynamicResource Faint}" FontSize="11" Margin="4,10,0,0"/>
+                        <TextBlock x:Name="SideVersion" Text="v1.0" Foreground="{DynamicResource Faint}" FontSize="11" Margin="4,10,0,0"/>
                     </StackPanel>
 
                     <!-- Navegação por categorias -->
