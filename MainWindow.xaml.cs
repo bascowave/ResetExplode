@@ -281,12 +281,13 @@ public partial class MainWindow : Window
             case "PageMakerDrv": InitMakerDrivers(); break;
             case "PageOptimize": InitOptimize(); break;
             case "PageCerts": RefreshCerts(); break;
+            case "PageGov": RefreshGov(); break;
         }
     }
 
     private void ShowPage(string name)
     {
-        foreach (var p in new FrameworkElement[] { PageDash, PageSystem, PageSensors, PageGpu, PageGames, PageBottleneck, PageOverlay, PageBench, PageOptimize, PageOc, PageInteg, PageLauncher, PageDriver, PageStartup, PageApps, PageMakerPorts, PageMakerDrv, PageDisks, PageEnergy, PageNet, PageCerts, PageStress })
+        foreach (var p in new FrameworkElement[] { PageDash, PageSystem, PageSensors, PageGpu, PageGames, PageBottleneck, PageOverlay, PageBench, PageOptimize, PageOc, PageInteg, PageLauncher, PageDriver, PageStartup, PageApps, PageMakerPorts, PageMakerDrv, PageDisks, PageEnergy, PageNet, PageCerts, PageGov, PageStress })
             p.Visibility = p.Name == name ? Visibility.Visible : Visibility.Collapsed;
     }
 

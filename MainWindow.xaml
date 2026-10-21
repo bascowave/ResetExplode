@@ -296,6 +296,12 @@
                                     <TextBlock Text="Instalar apps" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton x:Name="NavGov" Style="{StaticResource NavItem}" Tag="PageGov" Checked="Nav_Checked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE825;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Programas da Receita" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
                             <RadioButton x:Name="NavDriver" Style="{StaticResource NavItem}" Tag="PageDriver" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE896;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
@@ -781,6 +787,65 @@
                             O teste envia pacotes de ping ao roteador e aos DNS públicos 1.1.1.1 e 8.8.8.8 e baixa/envia dados de teste do servidor público
                             speed.cloudflare.com (cerca de 100 MB no total). Feche downloads, streaming e jogos antes para um resultado fiel.
                         </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Programas da Receita ===== -->
+                <ScrollViewer x:Name="PageGov" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="36,30,36,30">
+                        <Grid Margin="0,0,0,20">
+                            <StackPanel Margin="0,0,160,0">
+                                <TextBlock Text="Programas da Receita" Style="{StaticResource H1}"/>
+                                <TextBlock Text="Receitanet, PGDs e SPED instalados neste computador · download sempre pela página oficial" Style="{StaticResource Sub}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button x:Name="BtnGovScan" Style="{StaticResource PrimaryButton}" Content="VERIFICAR" Padding="22,9"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Click="BtnGovScan_Click"/>
+                        </Grid>
+                        <TextBlock x:Name="GovStatus" Text="Clique em VERIFICAR." Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                        <Border Style="{StaticResource CardBorder}">
+                            <StackPanel>
+                                <TextBlock Text="PROGRAMAS" Style="{StaticResource Label}" Margin="0,0,0,6"/>
+                                <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10">
+                                    Procura em Aplicativos instalados e em C:\Arquivos de Programas RFB. Esses programas mudam de versão todo ano e
+                                    não ficam no winget: para instalar ou atualizar, use SITE OFICIAL e baixe a versão do ano vigente.
+                                </TextBlock>
+                                <ItemsControl x:Name="GovList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="0,10">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding Description}" Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="{Binding Status}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="1" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Muted}"
+                                                               VerticalAlignment="Top" Margin="14,3,14,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text" Value=""/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Installed}" Value="True">
+                                                                        <Setter Property="Text" Value="INSTALADO"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <Button Grid.Column="2" Style="{StaticResource OutlineButton}" Content="SITE OFICIAL" Padding="10,4" FontSize="11"
+                                                            VerticalAlignment="Top" Tag="{Binding Url}" ToolTip="{Binding Url}" Click="BtnGovOpen_Click"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
 
