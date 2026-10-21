@@ -39,11 +39,11 @@ public static class Optimizer
         "ShellExperienceHost", "SearchHost", "SearchIndexer", "TextInputHost", "SecurityHealthService", "SecurityHealthSystray",
         "MsMpEng", "NisSrv", "SgrmBroker", "audiodg", "conhost", "dllhost", "spoolsv", "WmiPrvSE", "LockApp", "ApplicationFrameHost",
         "SystemSettings", "smartscreen", "MemCompression", "Secure System", "WUDFHost", "dasHost", "nvcontainer", "NVDisplay.Container",
-        "atiesrxx", "atieclxx", "amdfendrsr", "RadeonSoftware", "igfxEM", "PawnIO", "ResetExplode", "cmd", "powershell", "WindowsTerminal",
+        "atiesrxx", "atieclxx", "amdfendrsr", "RadeonSoftware", "igfxEM", "PawnIO", "TI-GA", "cmd", "powershell", "WindowsTerminal",
         "OpenConsole", "devenv", "Code", "dotnet",
     };
 
-    /// <summary>Processos de segundo plano seguros de fechar durante o jogo (pré-marcados).</summary>
+    /// <summary>Processos de segundo plano que costumam pesar e podem ser fechados (sugestões; nada vem marcado).</summary>
     private static readonly Dictionary<string, string> SuggestedApps = new(StringComparer.OrdinalIgnoreCase)
     {
         ["OneDrive"] = "Sincronização do OneDrive (pode usar disco e rede)",

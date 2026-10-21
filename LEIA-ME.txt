@@ -1,26 +1,23 @@
-RESET EXPLODE
-=============
+T.I - G.A
+=========
 
-Ferramenta de diagnóstico de hardware: informações do sistema, sensores, placa de vídeo,
-FPS estimado em jogos, detector de gargalo, overlay de FPS, RESET BENCH (benchmarks de CPU, GPU, memória e disco)
-RESET OTIMIZA (limpeza de memória e ajustes para jogos) e stress test de CPU / RAM / GPU.
+Ferramenta de suporte técnico da T.I da Guimarães Aranha: diagnóstico do computador,
+certificados digitais, programas da Receita, segurança e correções rápidas.
 
 REQUISITOS
 - Windows 10 ou 11, 64 bits. Não precisa instalar o .NET (já vem dentro do .exe).
-- Para temperatura e consumo da CPU, instale o driver PawnIO (uma vez só):
-      winget install namazso.PawnIO
-- Aceite o pedido de administrador ao abrir (necessário para ler os sensores).
-- Se a temperatura/consumo da CPU não aparecerem, o menu lateral mostra o motivo e um
-  botão CORRIGIR, que instala o PawnIO com um clique. Depois feche e abra o programa.
-  Se instalou o PawnIO e mesmo assim não aparecer, reinicie o PC.
+- Aceite o pedido de administrador ao abrir.
+- Para temperatura e consumo da CPU, o menu lateral mostra o botão CORRIGIR quando
+  falta o driver PawnIO. Depois de instalar, feche e abra o programa.
 
 COMO USAR
-- Abra o ResetExplode.exe. Na primeira vez ele demora alguns segundos para iniciar.
+- Abra o TI-GA.exe. Na primeira vez ele demora alguns segundos para iniciar.
 - Se o Windows mostrar "O Windows protegeu o computador", clique em "Mais informações"
-  e depois em "Executar assim mesmo" (o programa não tem assinatura digital paga).
-- Overlay: Ctrl + Shift + O liga e desliga.
+  e depois em "Executar assim mesmo".
+- A Visão geral mostra os certificados e a saúde do PC. Se algo estiver em alerta,
+  tente primeiro FERRAMENTAS > Correções rápidas.
+- Para abrir chamado, use DIAGNÓSTICO > Sistema > EXPORTAR RELATÓRIO e envie o arquivo para a T.I.
 
 OBSERVAÇÕES
-- Placas NVIDIA mostram mais detalhes (VBIOS, limites de energia, CUDA).
-- Configurações e histórico ficam em %AppData%\ResetExplode (não vão junto com o .exe).
-- Use os stress tests com o limite de temperatura ligado e boa ventilação.
+- Configurações ficam em %AppData%\TI-GA (não vão junto com o .exe).
+- Baseado no RESET EXPLODE (c) 2026 Gustavo (GustavoReset), licença MIT.

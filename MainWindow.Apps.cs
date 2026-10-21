@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace ResetExplode;
 
-/// <summary>Aba RESET FERRAMENTAS · Instalar apps: essenciais pós-formatação pelo winget.</summary>
+/// <summary>Página FERRAMENTAS · Instalar apps: essenciais pós-formatação pelo winget.</summary>
 public partial class MainWindow
 {
     private List<InstallableApp>? _installApps;

@@ -2,7 +2,7 @@
 bin/
 obj/
 publish/
-ResetExplode-dist/
+TI-GA-dist/
 *.exe
 *.dll
 *.pdb

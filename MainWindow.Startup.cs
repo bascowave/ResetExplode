@@ -3,7 +3,7 @@ using System.Windows.Controls;
 
 namespace ResetExplode;
 
-/// <summary>Aba RESET FERRAMENTAS · Inicialização: programas que abrem junto com o Windows.</summary>
+/// <summary>Página FERRAMENTAS · Inicialização: programas que abrem junto com o Windows.</summary>
 public partial class MainWindow
 {
     private void ScanStartup()

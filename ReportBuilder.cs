@@ -6,7 +6,6 @@ namespace ResetExplode;
 
 public sealed record ReportNode(string Name, string? Value, List<ReportNode>? Children);
 public sealed record ReportSensor(string Hardware, string Category, string Name, string Value, string Min, string Max);
-public sealed record ReportBench(DateTime Date, string Test, string Summary);
 public sealed record ReportDisk(string Name, string Details, string Verdict, string Reasons, List<KeyValuePair<string, string>> Metrics);
 public sealed record ReportGpu(string Name, string Subtitle, List<ReportNode> Sections);
 
@@ -23,7 +22,9 @@ public sealed class ReportData
     public List<ReportDisk> Power { get; init; } = new();
     public List<ReportDisk> Network { get; init; } = new();
     public List<ReportSensor> Sensors { get; init; } = new();
-    public List<ReportBench> Benchmarks { get; init; } = new();
+    public List<ReportDisk> Security { get; init; } = new();
+    public List<ReportDisk> Certificates { get; init; } = new();
+    public List<KeyValuePair<string, string>> GovPrograms { get; init; } = new();
 }
 
 /// <summary>Gera o relatório em HTML (arquivo único, abre em qualquer navegador) ou JSON. Números de série ficam de fora.</summary>
@@ -53,7 +54,9 @@ public static class ReportBuilder
         energia = d.Power.Select(x => new { x.Name, x.Details, estado = x.Verdict, x.Reasons, metricas = x.Metrics.ToDictionary(m => m.Key, m => m.Value) }),
         rede = d.Network.Select(x => new { x.Name, x.Details, estado = x.Verdict, x.Reasons, metricas = x.Metrics.ToDictionary(m => m.Key, m => m.Value) }),
         sensores = d.Sensors,
-        benchmarks = d.Benchmarks,
+        seguranca = d.Security.Select(x => new { x.Name, x.Details, estado = x.Verdict, x.Reasons }),
+        certificados = d.Certificates.Select(x => new { x.Name, x.Details, estado = x.Verdict, x.Reasons, metricas = x.Metrics.ToDictionary(m => m.Key, m => m.Value) }),
+        programas_da_receita = d.GovPrograms.ToDictionary(m => m.Key, m => m.Value),
     }, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
     private static void Section(StringBuilder sb, string title, List<ReportDisk> items)
@@ -62,7 +65,7 @@ public static class ReportBuilder
         sb.Append($"<section><h2>{E(title)}</h2>");
         foreach (var disk in items)
         {
-            string cls = disk.Verdict switch { "SAUDÁVEL" or "ESTÁVEL" or "EM USO" => "ok", "SEM DADOS" => "na", _ => "bad" };
+            string cls = disk.Verdict switch { "SAUDÁVEL" or "ESTÁVEL" or "EM USO" or "OK" or "VÁLIDO" or "ATIVO" or "LIGADO" or "EM DIA" or "PROTEGIDO" or "INSTALADO" or "CONECTADO" => "ok", "SEM DADOS" or "NENHUM" => "na", _ => "bad" };
             sb.Append($"<div class=\"card\"><div class=\"row\"><b>{E(disk.Name)}</b><span class=\"badge {cls}\">{E(disk.Verdict)}</span></div>");
             if (disk.Details.Length > 0) sb.Append($"<p class=\"muted\">{E(disk.Details)}</p>");
             sb.Append($"<p>{E(disk.Reasons)}</p>");
@@ -83,16 +86,18 @@ public static class ReportBuilder
     {
         var sb = new StringBuilder(64 * 1024);
         sb.Append("<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
-        sb.Append($"<title>GA SUPORTE · Relatório · {E(d.Machine)}</title><style>{Css}</style></head><body><div class=\"wrap\">");
+        sb.Append($"<title>T.I - G.A · Relatório · {E(d.Machine)}</title><style>{Css}</style></head><body><div class=\"wrap\">");
 
         sb.Append("<header>");
         if (!string.IsNullOrEmpty(d.LogoBase64)) sb.Append($"<img class=\"logo\" alt=\"\" src=\"data:image/png;base64,{d.LogoBase64}\">");
-        sb.Append($"<div><h1>GA SUPORTE</h1><p class=\"sub\">Relatório de hardware · {E(d.Machine)} · {d.Date:dd/MM/yyyy HH:mm}");
+        sb.Append($"<div><h1>T.I - G.A</h1><p class=\"sub\">Relatório do computador · {E(d.Machine)} · {d.Date:dd/MM/yyyy HH:mm}");
         if (d.AppVersion.Length > 0) sb.Append($" · v{E(d.AppVersion)}");
         sb.Append("</p></div></header>");
         sb.Append("<p class=\"note\">Números de série foram omitidos deste relatório.</p>");
 
-        // Resumo dos discos no topo (o que mais interessa de imediato)
+        // O que mais interessa ao suporte vem primeiro
+        Section(sb, "Segurança", d.Security);
+        Section(sb, "Certificados digitais", d.Certificates);
         Section(sb, "Saúde dos discos", d.Disks);
         Section(sb, "Bateria e energia", d.Power);
         Section(sb, "Teste de rede", d.Network);
@@ -125,15 +130,15 @@ public static class ReportBuilder
             sb.Append("</section>");
         }
 
-        if (d.Benchmarks.Count > 0)
+        if (d.GovPrograms.Count > 0)
         {
-            sb.Append("<section><h2>Benchmarks e testes recentes</h2><div class=\"card\"><table><tr><th>Data</th><th>Teste</th><th>Resultado</th></tr>");
-            foreach (var b in d.Benchmarks)
-                sb.Append($"<tr><td class=\"muted\">{b.Date:dd/MM/yyyy HH:mm}</td><td>{E(b.Test)}</td><td>{E(b.Summary)}</td></tr>");
+            sb.Append("<section><h2>Programas da Receita</h2><div class=\"card\"><table><tr><th>Programa</th><th>Situação</th></tr>");
+            foreach (var g in d.GovPrograms)
+                sb.Append($"<tr><td>{E(g.Key)}</td><td>{E(g.Value)}</td></tr>");
             sb.Append("</table></div></section>");
         }
 
-        sb.Append("<footer>Gerado pelo GA SUPORTE. Dados lidos do Windows, do driver da placa de vídeo e dos sensores da placa-mãe; podem variar conforme o hardware.</footer>");
+        sb.Append("<footer>Gerado pelo T.I - G.A. Dados lidos do Windows, do driver da placa de vídeo e dos sensores da placa-mãe; podem variar conforme o hardware.</footer>");
         sb.Append("</div></body></html>");
         return sb.ToString();
     }

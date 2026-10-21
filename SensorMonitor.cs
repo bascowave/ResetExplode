@@ -119,11 +119,11 @@ public sealed class SensorMonitor : IDisposable
     public static string Explain(CpuSensorProblem p) => p switch
     {
         CpuSensorProblem.NotElevated =>
-            "O GA SUPORTE não está rodando como administrador, e o Windows só libera os sensores internos da CPU " +
+            "O T.I - G.A não está rodando como administrador, e o Windows só libera os sensores internos da CPU " +
             "nesse modo. Feche e abra de novo aceitando o pedido de administrador.",
         CpuSensorProblem.PawnIOMissing =>
             "Falta o driver PawnIO, que lê a temperatura e o consumo da CPU. Ele é gratuito, assinado e usado também " +
-            "pelo LibreHardwareMonitor e pelo FanControl. Depois de instalar, feche e abra o GA SUPORTE.",
+            "pelo LibreHardwareMonitor e pelo FanControl. Depois de instalar, feche e abra o T.I - G.A.",
         CpuSensorProblem.ReadFailed =>
             "O PawnIO está instalado, mas a leitura falhou. Se acabou de instalar, reinicie o PC. Se continuar, " +
             "confira se o antivírus não bloqueou o driver ou se a CPU é muito antiga/recente para a biblioteca de sensores.",

@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace ResetExplode;
 
 /// <summary>
-/// Diagnóstico de rede para lag: latência, jitter e perda de pacotes até o roteador e até a internet,
+/// Diagnóstico de rede: latência, jitter e perda de pacotes até o roteador e até a internet,
 /// resolução de DNS, velocidade de download/upload e latência sob carga (bufferbloat).
 /// Os testes de velocidade usam o servidor público speed.cloudflare.com. Não grava nada no disco.
 /// </summary>
@@ -209,18 +209,18 @@ public static class NetworkTest
             if (netLoss > 5 || netAvg > 150) bad = true;
             if (netLoss > 1) warn.Add($"Há perda de pacotes até a internet ({netLoss:0.#}%). {(lanBad ? "Provavelmente vem da rede local." : "Como o roteador está bem, o problema deve estar na linha ou no provedor.")}");
             if (netAvg > 80) warn.Add($"Latência alta até a internet ({netAvg:0} ms).{(lanBad ? "" : " O roteador responde bem, então o atraso vem do provedor.")}");
-            if (netJit > 20) warn.Add($"O jitter está alto ({netJit:0} ms): a latência oscila, o que causa engasgos em jogos online.");
+            if (netJit > 20) warn.Add($"O jitter está alto ({netJit:0} ms): a latência oscila, o que causa travadas em chamadas de vídeo e no acesso remoto.");
         }
         if (loadedMs != null && net.Count > 0 && loadedMs - net.Min(p => p.Avg) > 100)
             warn.Add($"A latência sobe para {loadedMs:0} ms quando a conexão está cheia (bufferbloat). Ative SQM/QoS no roteador ou limite a velocidade a ~90%.");
         if (dnsMs > 150) warn.Add($"O DNS demorou {dnsMs:0} ms. Trocar para 1.1.1.1 ou 8.8.8.8 pode acelerar o carregamento de sites.");
-        if (down is < 10) warn.Add($"Download baixo ({down:0.#} Mbps) para jogos, streaming e atualizações.");
+        if (down is < 10) warn.Add($"Download baixo ({down:0.#} Mbps) para chamadas de vídeo, envio de arquivos e atualizações.");
         if (netErr != null && down == null) warn.Add("Não foi possível medir a velocidade (speed.cloudflare.com inacessível ou bloqueado).");
 
         var verdict = bad ? DiskVerdict.Critical : warn.Any(w => !w.StartsWith("O roteador não responde")) ? DiskVerdict.Warning : DiskVerdict.Good;
         string label = verdict switch { DiskVerdict.Critical => "RUIM", DiskVerdict.Warning => "ATENÇÃO", _ => "ESTÁVEL" };
         string reasons = warn.Count > 0 ? string.Join(" ", warn)
-            : "Latência baixa, sem perda de pacotes e sem sinais de bufferbloat. Se o jogo ainda engasga, o problema provavelmente não é a conexão: veja o Gargalo e as temperaturas.";
+            : "Latência baixa, sem perda de pacotes e sem sinais de bufferbloat. Se o PC continua lento, o problema provavelmente não é a conexão.";
 
         var m = new List<KeyValuePair<string, string>>();
         foreach (var p in pings) m.Add(new($"{p.Name} ({p.Address})", p.Text));

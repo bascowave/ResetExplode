@@ -3,7 +3,7 @@ using System.Windows.Threading;
 
 namespace ResetExplode;
 
-/// <summary>Páginas Energia (bateria e fonte) e Rede (diagnóstico de lag).</summary>
+/// <summary>Páginas Energia (bateria e fonte) e Rede (diagnóstico da conexão).</summary>
 public partial class MainWindow
 {
     // ================= Energia =================
@@ -43,7 +43,6 @@ public partial class MainWindow
     private async void BtnNetTest_Click(object sender, RoutedEventArgs e)
     {
         if (_netRunning) { _netCts?.Cancel(); return; }
-        if (AnyBenchRunning || TestRunning) { NetStatus.Text = "Termine o outro teste antes."; return; }
 
         _netRunning = true;
         _netCts = new CancellationTokenSource();
