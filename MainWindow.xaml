@@ -221,6 +221,12 @@
                                     <TextBlock Text="Rede" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </RadioButton>
+                            <RadioButton x:Name="NavCerts" Style="{StaticResource NavItem}" Tag="PageCerts" Checked="Nav_Checked">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8D7;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Certificados" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </RadioButton>
                             </StackPanel>
                             <ToggleButton x:Name="GrpGames" Style="{StaticResource NavGroup}" Visibility="Collapsed" Content="RESET JOGOS"/>
                             <StackPanel x:Name="GrpGamesItems" Margin="10,0,0,4" Visibility="Collapsed">
@@ -774,6 +780,36 @@
                         <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap">
                             O teste envia pacotes de ping ao roteador e aos DNS públicos 1.1.1.1 e 8.8.8.8 e baixa/envia dados de teste do servidor público
                             speed.cloudflare.com (cerca de 100 MB no total). Feche downloads, streaming e jogos antes para um resultado fiel.
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Certificados digitais ===== -->
+                <ScrollViewer x:Name="PageCerts" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="36,30,36,30">
+                        <Grid Margin="0,0,0,20">
+                            <StackPanel Margin="0,0,330,0">
+                                <TextBlock Text="Certificados digitais" Style="{StaticResource H1}"/>
+                                <TextBlock Text="Certificados ICP-Brasil A1 e A3 instalados, validade e diagnóstico do token" Style="{StaticResource Sub}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <Button Style="{StaticResource OutlineButton}" Content="GERENCIADOR" Padding="16,9" Margin="0,0,8,0"
+                                        ToolTip="Abre o gerenciador de certificados do Windows (certmgr)" Click="BtnCertMgr_Click"/>
+                                <Button x:Name="BtnCertScan" Style="{StaticResource PrimaryButton}" Content="VERIFICAR" Padding="22,9" Click="BtnCertScan_Click"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="CertStatus" Text="Clique em VERIFICAR." Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                        <TextBlock Text="CERTIFICADOS INSTALADOS" Style="{StaticResource Label}" Margin="0,0,0,8"/>
+                        <ItemsControl x:Name="CertCards" ItemTemplate="{StaticResource CardTemplate}"/>
+                        <TextBlock x:Name="CertEmpty" Visibility="Collapsed" Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Margin="0,0,0,16"
+                                   Text="Nenhum certificado ICP-Brasil encontrado. Para A3, conecte o token; para A1, importe o arquivo .pfx."/>
+                        <TextBlock Text="DIAGNÓSTICO DO TOKEN" Style="{StaticResource Label}" Margin="0,8,0,8"/>
+                        <ItemsControl x:Name="CertDiagCards" ItemTemplate="{StaticResource CardTemplate}"/>
+                        <Button x:Name="BtnCertSvc" Style="{StaticResource OutlineButton}" Content="INICIAR SERVIÇO CARTÃO INTELIGENTE" Padding="16,8"
+                                HorizontalAlignment="Left" Visibility="Collapsed" Margin="0,0,0,16" Click="BtnCertSvc_Click"/>
+                        <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap">
+                            A verificação só lê os certificados do Windows e não acessa a chave privada, então o token não pede PIN.
+                            Certificados que vencem em até 30 dias aparecem como VENCE LOGO.
                         </TextBlock>
                     </StackPanel>
                 </ScrollViewer>
