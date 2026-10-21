@@ -69,7 +69,7 @@ public partial class OverlayWindow : Window
         SetWindowPos(_hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
     }
 
-    /// <summary>Segue o monitor da janela ativa, a não ser que seja do próprio RESET EXPLODE.</summary>
+    /// <summary>Segue o monitor da janela ativa, a não ser que seja do próprio GA SUPORTE.</summary>
     private void TrackGame(IntPtr fg)
     {
         if (fg == IntPtr.Zero) return;

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ResetExplode"
-        Title="RESET EXPLODE" Icon="Assets/app.ico" Width="1320" Height="840" MinWidth="1120" MinHeight="660"
+        Title="GA SUPORTE" Icon="Assets/app.ico" Width="1320" Height="840" MinWidth="1120" MinHeight="660"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
         Background="{DynamicResource Bg}" Foreground="{DynamicResource Fg}"
         FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13"
@@ -183,7 +183,7 @@
                                     <TextBlock Text="Visão geral" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </RadioButton>
-                            <ToggleButton x:Name="GrpExplode" Style="{StaticResource NavGroup}" Content="RESET EXPLODE"/>
+                            <ToggleButton x:Name="GrpExplode" Style="{StaticResource NavGroup}" Content="DIAGNÓSTICO"/>
                             <StackPanel x:Name="GrpExplodeItems" Margin="10,0,0,4" Visibility="{Binding IsChecked, ElementName=GrpExplode, Converter={StaticResource BoolVis}}">
                             <RadioButton x:Name="NavSystem" Style="{StaticResource NavItem}" Tag="PageSystem" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
@@ -222,8 +222,8 @@
                                 </StackPanel>
                             </RadioButton>
                             </StackPanel>
-                            <ToggleButton x:Name="GrpGames" Style="{StaticResource NavGroup}" Content="RESET JOGOS"/>
-                            <StackPanel x:Name="GrpGamesItems" Margin="10,0,0,4" Visibility="{Binding IsChecked, ElementName=GrpGames, Converter={StaticResource BoolVis}}">
+                            <ToggleButton x:Name="GrpGames" Style="{StaticResource NavGroup}" Visibility="Collapsed" Content="RESET JOGOS"/>
+                            <StackPanel x:Name="GrpGamesItems" Margin="10,0,0,4" Visibility="Collapsed">
                             <RadioButton x:Name="NavLauncher" Style="{StaticResource NavItem}" Tag="PageLauncher" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE8F1;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
@@ -249,8 +249,8 @@
                                 </StackPanel>
                             </RadioButton>
                             </StackPanel>
-                            <ToggleButton x:Name="GrpPerf" Style="{StaticResource NavGroup}" Content="RESET DESEMPENHO"/>
-                            <StackPanel x:Name="GrpPerfItems" Margin="10,0,0,4" Visibility="{Binding IsChecked, ElementName=GrpPerf, Converter={StaticResource BoolVis}}">
+                            <ToggleButton x:Name="GrpPerf" Style="{StaticResource NavGroup}" Visibility="Collapsed" Content="RESET DESEMPENHO"/>
+                            <StackPanel x:Name="GrpPerfItems" Margin="10,0,0,4" Visibility="Collapsed">
                             <RadioButton x:Name="NavBench" Style="{StaticResource NavItem}" Tag="PageBench" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE8B9;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
@@ -270,7 +270,7 @@
                                 </StackPanel>
                             </RadioButton>
                             </StackPanel>
-                            <ToggleButton x:Name="GrpTools" Style="{StaticResource NavGroup}" Content="RESET FERRAMENTAS"/>
+                            <ToggleButton x:Name="GrpTools" Style="{StaticResource NavGroup}" Content="FERRAMENTAS"/>
                             <StackPanel x:Name="GrpToolsItems" Margin="10,0,0,4" Visibility="{Binding IsChecked, ElementName=GrpTools, Converter={StaticResource BoolVis}}">
                             <RadioButton x:Name="NavOptimize" Style="{StaticResource NavItem}" Tag="PageOptimize" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
@@ -296,15 +296,15 @@
                                     <TextBlock Text="Drivers" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </RadioButton>
-                            <RadioButton x:Name="NavInteg" Style="{StaticResource NavItem}" Tag="PageInteg" Checked="Nav_Checked">
+                            <RadioButton x:Name="NavInteg" Visibility="Collapsed" Style="{StaticResource NavItem}" Tag="PageInteg" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE790;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
                                     <TextBlock Text="Integração" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </RadioButton>
                             </StackPanel>
-                            <ToggleButton x:Name="GrpMaker" Style="{StaticResource NavGroup}" Content="RESET MAKER"/>
-                            <StackPanel x:Name="GrpMakerItems" Margin="10,0,0,4" Visibility="{Binding IsChecked, ElementName=GrpMaker, Converter={StaticResource BoolVis}}">
+                            <ToggleButton x:Name="GrpMaker" Style="{StaticResource NavGroup}" Visibility="Collapsed" Content="RESET MAKER"/>
+                            <StackPanel x:Name="GrpMakerItems" Margin="10,0,0,4" Visibility="Collapsed">
                             <RadioButton x:Name="NavMakerPorts" Style="{StaticResource NavItem}" Tag="PageMakerPorts" Checked="Nav_Checked">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE88E;" FontFamily="{StaticResource Icons}" FontSize="14" Width="28" VerticalAlignment="Center"/>
@@ -2109,7 +2109,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Click="BtnRefreshApps_Click"/>
                                     </Grid>
                                     <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10">
-                                        Marcados = seguros de fechar durante o jogo. Programas com janela recebem o pedido de
+                                        Nada vem marcado: escolha o que deseja fechar. Programas com janela recebem o pedido de
                                         fechar (como clicar no X) e não são forçados, para não perder nada não salvo.
                                     </TextBlock>
                                     <ItemsControl x:Name="OptApps">
@@ -2454,7 +2454,7 @@
                                             HorizontalAlignment="Right" VerticalAlignment="Top" Click="BtnMakerBundleAll_Click"/>
                                 </Grid>
                                 <TextBlock Foreground="{DynamicResource Faint}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10">
-                                    Drivers oficiais de cada fabricante que já vêm dentro do RESET EXPLODE: instalam sem internet, ideal logo depois
+                                    Drivers oficiais de cada fabricante que já vêm dentro do GA SUPORTE: instalam sem internet, ideal logo depois
                                     de formatar. Pode instalar com a placa desconectada; o Windows usa o driver quando ela for plugada.
                                     Os drivers Arduino são assinados pela Arduino (não pela Microsoft): o Windows pode pedir confirmação.
                                 </TextBlock>

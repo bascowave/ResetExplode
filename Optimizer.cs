@@ -95,7 +95,7 @@ public static class Optimizer
             result.Add(new BackgroundApp
             {
                 ProcessName = name, Title = title, Detail = detail, MemoryBytes = mem, Count = procs.Count,
-                HasWindow = hasWindow, Suggested = suggested, Selected = suggested
+                HasWindow = hasWindow, Suggested = suggested, Selected = false
             });
         }
         return result.OrderByDescending(a => a.Suggested).ThenByDescending(a => a.MemoryBytes).ToList();

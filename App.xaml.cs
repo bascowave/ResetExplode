@@ -6,7 +6,7 @@ namespace ResetExplode;
 
 public partial class App : Application
 {
-    // Uma única instância: abrir o RESET EXPLODE de novo só traz a janela que já está aberta para a frente.
+    // Uma única instância: abrir o GA SUPORTE de novo só traz a janela que já está aberta para a frente.
     private static Mutex? _single;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindow(string? cls, string title);
@@ -22,7 +22,7 @@ public partial class App : Application
 
         if (!first)
         {
-            IntPtr h = FindWindow(null, "RESET EXPLODE");
+            IntPtr h = FindWindow(null, "GA SUPORTE");
             if (h != IntPtr.Zero)
             {
                 if (IsIconic(h)) ShowWindow(h, 9); // SW_RESTORE

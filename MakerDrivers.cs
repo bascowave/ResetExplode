@@ -26,7 +26,7 @@ public sealed class SerialDeviceRow
     public string State => Ok ? "FUNCIONANDO" : "COM PROBLEMA";
 }
 
-/// <summary>Driver oficial que vem dentro do RESET EXPLODE (pasta Drivers\ do projeto).</summary>
+/// <summary>Driver oficial que vem dentro do GA SUPORTE (pasta Drivers\ do projeto).</summary>
 public sealed class BundledDriver
 {
     public SerialChip Chip { get; init; } = null!;

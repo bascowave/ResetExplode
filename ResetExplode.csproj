@@ -9,8 +9,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AssemblyName>ResetExplode</AssemblyName>
-    <Product>RESET EXPLODE</Product>
-    <Version>0.16.0</Version>
+    <Product>GA SUPORTE</Product>
+    <Version>1.0.0</Version>
     <!-- Sempre otimizado: o RESET BENCH e os stress tests precisam do JIT otimizado também em Debug -->
     <Optimize>true</Optimize>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

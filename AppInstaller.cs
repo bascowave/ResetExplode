@@ -47,13 +47,13 @@ public static class AppInstaller
 {
     public static List<InstallableApp> Catalog() => new()
     {
-        new() { Name = "Steam", Description = "Loja e biblioteca de jogos da Valve.", WingetId = "Valve.Steam", DisplayPrefix = "Steam" },
         new() { Name = "Google Chrome", Description = "Navegador do Google.", WingetId = "Google.Chrome", DisplayPrefix = "Google Chrome" },
-        new() { Name = "Discord", Description = "Chat de voz e texto para jogar com os amigos.", WingetId = "Discord.Discord", DisplayPrefix = "Discord" },
-        new() { Name = "Lightshot", Description = "Captura de tela rápida com a tecla Print Screen.", WingetId = "Skillbrains.Lightshot", DisplayPrefix = "Lightshot" },
+        new() { Name = "Adobe Acrobat Reader", Description = "Leitor de PDF (guias, declarações, contratos).", WingetId = "Adobe.Acrobat.Reader.64-bit", DisplayPrefix = "Adobe Acrobat" },
         new() { Name = "7-Zip", Description = "Compactador gratuito (zip, rar, 7z). Abre e cria arquivos compactados.", WingetId = "7zip.7zip", DisplayPrefix = "7-Zip" },
-        new() { Name = "WinRAR", Description = "Compactador clássico (pago após o teste). Escolha ele ou o 7-Zip.", WingetId = "RARLab.WinRAR", DisplayPrefix = "WinRAR", PreSelect = false },
-        new() { Name = "VLC", Description = "Player de vídeo e música que abre qualquer formato.", WingetId = "VideoLAN.VLC", DisplayPrefix = "VLC media player" },
+        new() { Name = "Java (Oracle JRE 8)", Description = "Necessário para alguns programas da Receita e assinadores.", WingetId = "Oracle.JavaRuntimeEnvironment", DisplayPrefix = "Java 8" },
+        new() { Name = "AnyDesk", Description = "Acesso remoto para o suporte da TI.", WingetId = "AnyDesk.AnyDesk", DisplayPrefix = "AnyDesk" },
+        new() { Name = "Microsoft Teams", Description = "Chat e reuniões da equipe.", WingetId = "Microsoft.Teams", DisplayPrefix = "Microsoft Teams", PreSelect = false },
+        new() { Name = "Lightshot", Description = "Captura de tela rápida com a tecla Print Screen.", WingetId = "Skillbrains.Lightshot", DisplayPrefix = "Lightshot", PreSelect = false },
     };
 
     public static string WingetPath =>
