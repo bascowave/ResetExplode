@@ -1,3 +1,8 @@
+## T.I - G.A — atualização do agente (painel)
+
+**Corrigido**
+- Agente do painel volta a ficar **online** depois de queda de Wi‑Fi/rede (HTTP e montagem do relatório não travam mais por minutos).
+
 ## T.I - G.A v1.0
 
 Primeira versão da ferramenta de suporte da T.I da Guimarães Aranha, feita a partir do RESET EXPLODE.

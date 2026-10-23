@@ -71,7 +71,12 @@ public sealed class AgentConfig
 public sealed class PanelAgent : IDisposable
 {
     public const string TaskName = "TI-GA Agente";
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
+    // Conexões novas após queda de Wi‑Fi/rede; evita ficar preso em socket morto do pool.
+    private static readonly HttpClient Http = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+        ConnectTimeout = TimeSpan.FromSeconds(12),
+    }) { Timeout = TimeSpan.FromSeconds(25) };
 
     private readonly SensorMonitor _monitor;
     private readonly bool _ownsMonitor;
@@ -107,7 +112,13 @@ public sealed class PanelAgent : IDisposable
     public async Task<string> SendAsync(AgentConfig cfg, CancellationToken ct = default)
     {
         if (cfg.ScriptsEnabled && cfg.ScriptKey.Length == 0) await PinScriptKeyAsync(cfg, ct);
-        var body = await BuildAsync(cfg, ct);
+        object body;
+        try { body = await BuildAsync(cfg, ct); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            Log("relatório demorou demais; enviando mínimo");
+            body = BuildMinimal(cfg);
+        }
         using var req = new HttpRequestMessage(HttpMethod.Post, cfg.Url.TrimEnd('/') + "/api/coleta") { Content = JsonContent.Create(body) };
         req.Headers.Add("X-Agent-Key", cfg.Key);
         using var res = await Http.SendAsync(req, ct);
@@ -121,8 +132,19 @@ public sealed class PanelAgent : IDisposable
             _ = Task.Run(() => RunScriptsAsync(cfg, list, CancellationToken.None));
         }
         if (answer.TryGetProperty("commands", out var cmds) && cmds.ValueKind == JsonValueKind.Array)
-            foreach (var c in cmds.EnumerateArray())
-                await RunCommandAsync(cfg, c.GetProperty("id").GetInt64(), c.GetProperty("action").GetString() ?? "", ct);
+        {
+            var list = cmds.EnumerateArray().Select(c => (c.GetProperty("id").GetInt64(), c.GetProperty("action").GetString() ?? "")).ToList();
+            if (list.Count > 0)
+                _ = Task.Run(async () =>
+                {
+                    foreach (var (id, action) in list)
+                    {
+                        try { await RunCommandAsync(cfg, id, action, CancellationToken.None); }
+                        catch (Exception ex) { Log($"ação {id}: {ex.Message}"); }
+                    }
+                });
+        }
+        Log("envio ok");
         return answer.TryGetProperty("unit", out var u) ? u.GetString() ?? "" : "";
     }
 
@@ -231,25 +253,55 @@ public sealed class PanelAgent : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException) { Log($"ação {id}: falha ao devolver resultado: {ex.Message}"); }
     }
 
+    /// <summary>Relatório mínimo quando WMI/rede demoram após queda de Wi‑Fi — só para o painel marcar online.</summary>
+    private static object BuildMinimal(AgentConfig cfg)
+    {
+        var (total, avail) = Optimizer.MemoryStatus();
+        var sys = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!);
+        return new
+        {
+            machineId = MachineId(),
+            hostname = Environment.MachineName,
+            unit = cfg.Unit,
+            user = Environment.UserName,
+            os = OsName(),
+            localIp = (string?)null,
+            ramUsedGb = Math.Round((total - avail) / 1073741824.0, 2),
+            ramTotalGb = Math.Round(total / 1073741824.0, 2),
+            diskFreeGb = Math.Round(sys.AvailableFreeSpace / 1073741824.0, 1),
+            diskTotalGb = Math.Round(sys.TotalSize / 1073741824.0, 1),
+            pingGatewayMs = (float?)null,
+            pingInternetMs = (float?)null,
+            lossPct = 0f,
+            uptimeHours = Math.Round(Environment.TickCount64 / 3600000.0, 1),
+            security = Array.Empty<object>(),
+            certs = Array.Empty<object>(),
+            scriptsEnabled = cfg.ScriptsEnabled && cfg.ScriptKey.Length > 0,
+        };
+    }
+
     private async Task<object> BuildAsync(AgentConfig cfg, CancellationToken ct)
     {
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        budget.CancelAfter(TimeSpan.FromSeconds(45));
+
         if (_ownsMonitor) _monitor.Refresh();
         if ((DateTime.Now - _slowAt).TotalMinutes >= 30)
         {
             _slowAt = DateTime.Now;
-            try { _certs = await Task.Run(CertificateCheck.ReadSummary, ct); } catch { }
-            try { _security = await Task.Run(SecurityCheck.Read, ct); } catch { }
+            try { _certs = await Task.Run(CertificateCheck.ReadSummary, budget.Token); } catch { }
+            try { _security = await Task.Run(SecurityCheck.Read, budget.Token); } catch { }
         }
 
         List<object>? software = null;
         if ((DateTime.Now - _softwareAt).TotalHours >= 6)
         {
-            try { software = await Task.Run(InstalledSoftware, ct); _softwareAt = DateTime.Now; } catch { }
+            try { software = await Task.Run(InstalledSoftware, budget.Token); _softwareAt = DateTime.Now; } catch { }
         }
 
         var (total, avail) = Optimizer.MemoryStatus();
         var sys = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!);
-        var (gateway, internet, loss) = await PingAsync(ct);
+        var (gateway, internet, loss) = await PingAsync(budget.Token);
 
         return new
         {
@@ -325,17 +377,19 @@ public sealed class PanelAgent : IDisposable
     /// <summary>4 pings ao roteador e 4 a 1.1.1.1/8.8.8.8. Retorna média em ms (null = sem resposta) e perda % até a internet.</summary>
     private static async Task<(float? Gateway, float? Internet, float Loss)> PingAsync(CancellationToken ct)
     {
+        const int count = 2;
+        const int timeoutMs = 800;
         async Task<(float? Avg, int Lost)> Run(IPAddress ip)
         {
             using var p = new Ping();
             var times = new List<long>();
             int lost = 0;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < count; i++)
             {
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var r = await p.SendPingAsync(ip, 1500);
+                    var r = await p.SendPingAsync(ip, timeoutMs);
                     if (r.Status == IPStatus.Success) times.Add(r.RoundtripTime); else lost++;
                 }
                 catch { lost++; }
@@ -348,7 +402,7 @@ public sealed class PanelAgent : IDisposable
         var a = await Run(IPAddress.Parse("1.1.1.1"));
         var b = await Run(IPAddress.Parse("8.8.8.8"));
         float? net = a.Avg ?? b.Avg;
-        float loss = Math.Min(a.Lost, b.Lost) * 25f; // perda só conta se os dois destinos perderam
+        float loss = Math.Min(a.Lost, b.Lost) * (100f / count); // perda só conta se os dois destinos perderam
         return (gw, net, loss);
     }
 
@@ -364,7 +418,9 @@ public sealed class PanelAgent : IDisposable
         try
         {
             using var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            s.Connect("1.1.1.1", 53); // não envia nada: só descobre a interface usada para sair
+            using var cts = new CancellationTokenSource(2000);
+            var connect = s.ConnectAsync(new IPEndPoint(IPAddress.Parse("1.1.1.1"), 53), cts.Token).AsTask();
+            if (!connect.Wait(2000)) return null;
             return (s.LocalEndPoint as IPEndPoint)?.Address.ToString();
         }
         catch { return null; }
@@ -395,18 +451,25 @@ public sealed class PanelAgent : IDisposable
     {
         try
         {
-            var explorer = Process.GetProcessesByName("explorer").FirstOrDefault();
-            if (explorer != null)
-            {
-                using var q = new System.Management.ManagementObjectSearcher($"SELECT * FROM Win32_Process WHERE ProcessId={explorer.Id}");
-                foreach (System.Management.ManagementObject o in q.Get())
-                {
-                    var args = new object[2];
-                    if (Convert.ToInt32(o.InvokeMethod("GetOwner", args)) == 0) return (string)args[0];
-                }
-            }
+            var task = Task.Run(LoggedUserCore);
+            if (task.Wait(TimeSpan.FromSeconds(3))) return task.Result;
         }
         catch { }
+        return Environment.UserName;
+    }
+
+    private static string LoggedUserCore()
+    {
+        var explorer = Process.GetProcessesByName("explorer").FirstOrDefault();
+        if (explorer != null)
+        {
+            using var q = new System.Management.ManagementObjectSearcher($"SELECT * FROM Win32_Process WHERE ProcessId={explorer.Id}");
+            foreach (System.Management.ManagementObject o in q.Get())
+            {
+                var args = new object[2];
+                if (Convert.ToInt32(o.InvokeMethod("GetOwner", args)) == 0) return (string)args[0];
+            }
+        }
         return Environment.UserName;
     }
 
