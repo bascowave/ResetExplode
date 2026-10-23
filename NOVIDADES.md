@@ -1,7 +1,8 @@
-## T.I - G.A — atualização do agente (painel)
+## T.I - G.A v1.0.1
 
 **Corrigido**
-- Agente do painel volta a ficar **online** depois de queda de Wi‑Fi/rede (HTTP e montagem do relatório não travam mais por minutos).
+- Agente **não travava mais no “agente iniciado”**: o painel passa a receber dados mesmo quando a leitura de sensores demora ou trava.
+- Reconexão após Wi‑Fi/rede: envio mais resiliente (HTTP, timeouts e relatório mínimo de fallback).
 
 ## T.I - G.A v1.0
 

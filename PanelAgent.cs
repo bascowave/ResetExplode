@@ -95,11 +95,15 @@ public sealed class PanelAgent : IDisposable
     /// <summary>Loop do modo --agente (sem janela).</summary>
     public async Task RunAsync(CancellationToken ct)
     {
-        if (_ownsMonitor) { try { await _monitor.OpenAsync(); } catch { } }
+        // Não bloquear o envio no Open() do LibreHardwareMonitor: em alguns PCs ele trava e o painel nunca recebe dados.
+        if (_ownsMonitor) _ = Task.Run(async () => { try { await _monitor.OpenAsync(); Log("sensores prontos"); } catch (Exception ex) { Log("sensores indisponíveis: " + ex.Message); } }, ct);
+        var ver = typeof(PanelAgent).Assembly.GetName().Version?.ToString(3) ?? "?";
+        Log($"loop de envio ativo (v{ver})");
         while (!ct.IsCancellationRequested)
         {
             var cfg = AgentConfig.Load(); // relê a cada ciclo: mudar a URL/chave não exige reiniciar
-            if (cfg.IsSet)
+            if (!cfg.IsSet) Log("agente sem URL/chave em %ProgramData%\\TI-GA\\agente.json");
+            else
             {
                 try { await SendAsync(cfg, ct); }
                 catch (Exception ex) when (ex is not OperationCanceledException) { Log("falha no envio: " + ex.Message); }
