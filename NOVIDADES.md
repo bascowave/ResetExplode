@@ -1,3 +1,10 @@
+## T.I - G.A v1.0.2
+
+**Corrigido**
+- Agente **volta a enviar após queda de Wi‑Fi** (leitura de sensores não trava mais o envio a cada minuto).
+- Log `rede disponível` / `rede indisponível` e HTTP reiniciado quando a internet volta.
+- Tarefa agendada: **ao ligar o PC** (1 min de espera para a rede) + **no logon** como reserva.
+
 ## T.I - G.A v1.0.1
 
 **Corrigido**

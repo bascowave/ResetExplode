@@ -66,6 +66,11 @@ public partial class App : Application
         if (!first) { Shutdown(); return; }
         PanelAgent.Log("agente iniciado");
         var agent = new PanelAgent();
-        Task.Run(() => agent.RunAsync(CancellationToken.None));
+        Task.Run(async () =>
+        {
+            try { await agent.RunAsync(CancellationToken.None); }
+            catch (Exception ex) { PanelAgent.Log("agente parou: " + ex.Message); }
+            finally { agent.Dispose(); }
+        });
     }
 }

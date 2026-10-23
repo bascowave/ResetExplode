@@ -71,12 +71,24 @@ public sealed class AgentConfig
 public sealed class PanelAgent : IDisposable
 {
     public const string TaskName = "TI-GA Agente";
-    // Conexões novas após queda de Wi‑Fi/rede; evita ficar preso em socket morto do pool.
-    private static readonly HttpClient Http = new(new SocketsHttpHandler
+    public const string LogonTaskName = "TI-GA Agente (logon)";
+    private static readonly object HttpGate = new();
+    private static HttpClient Http = CreateHttp();
+
+    private static HttpClient CreateHttp() => new(new SocketsHttpHandler
     {
         PooledConnectionLifetime = TimeSpan.FromMinutes(2),
         ConnectTimeout = TimeSpan.FromSeconds(12),
     }) { Timeout = TimeSpan.FromSeconds(25) };
+
+    private static void ResetHttp()
+    {
+        lock (HttpGate)
+        {
+            try { Http.Dispose(); } catch { }
+            Http = CreateHttp();
+        }
+    }
 
     private readonly SensorMonitor _monitor;
     private readonly bool _ownsMonitor;
@@ -95,25 +107,48 @@ public sealed class PanelAgent : IDisposable
     /// <summary>Loop do modo --agente (sem janela).</summary>
     public async Task RunAsync(CancellationToken ct)
     {
+        NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
         // Não bloquear o envio no Open() do LibreHardwareMonitor: em alguns PCs ele trava e o painel nunca recebe dados.
         if (_ownsMonitor) _ = Task.Run(async () => { try { await _monitor.OpenAsync(); Log("sensores prontos"); } catch (Exception ex) { Log("sensores indisponíveis: " + ex.Message); } }, ct);
         var ver = typeof(PanelAgent).Assembly.GetName().Version?.ToString(3) ?? "?";
         Log($"loop de envio ativo (v{ver})");
-        while (!ct.IsCancellationRequested)
+        try
         {
-            var cfg = AgentConfig.Load(); // relê a cada ciclo: mudar a URL/chave não exige reiniciar
-            if (!cfg.IsSet) Log("agente sem URL/chave em %ProgramData%\\TI-GA\\agente.json");
-            else
+            while (!ct.IsCancellationRequested)
             {
-                try { await SendAsync(cfg, ct); }
-                catch (Exception ex) when (ex is not OperationCanceledException) { Log("falha no envio: " + ex.Message); }
+                var cfg = AgentConfig.Load(); // relê a cada ciclo: mudar a URL/chave não exige reiniciar
+                if (!cfg.IsSet) Log("agente sem URL/chave em %ProgramData%\\TI-GA\\agente.json");
+                else
+                {
+                    try { await SendAsync(cfg, ct); }
+                    catch (Exception ex) when (ex is not OperationCanceledException) { Log("falha no envio: " + ex.Message); }
+                }
+                try { await Task.Delay(TimeSpan.FromSeconds(60), ct); } catch (OperationCanceledException) { break; }
             }
-            try { await Task.Delay(TimeSpan.FromSeconds(60), ct); } catch (OperationCanceledException) { break; }
         }
+        finally { NetworkChange.NetworkAvailabilityChanged -= OnNetworkChanged; }
+    }
+
+    private static void OnNetworkChanged(object? sender, NetworkAvailabilityEventArgs e)
+    {
+        Log(e.IsAvailable ? "rede disponível" : "rede indisponível");
+        if (e.IsAvailable) ResetHttp();
     }
 
     /// <summary>Envia um relatório agora. Retorna a unidade em que o painel registrou a máquina.</summary>
     public async Task<string> SendAsync(AgentConfig cfg, CancellationToken ct = default)
+    {
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        limit.CancelAfter(TimeSpan.FromSeconds(90));
+        try { return await SendAsyncCore(cfg, limit.Token); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            Log("envio demorou demais; tentando relatório mínimo");
+            return await PostAsync(cfg, BuildMinimal(cfg), ct);
+        }
+    }
+
+    private async Task<string> SendAsyncCore(AgentConfig cfg, CancellationToken ct)
     {
         if (cfg.ScriptsEnabled && cfg.ScriptKey.Length == 0) await PinScriptKeyAsync(cfg, ct);
         object body;
@@ -123,9 +158,16 @@ public sealed class PanelAgent : IDisposable
             Log("relatório demorou demais; enviando mínimo");
             body = BuildMinimal(cfg);
         }
+        return await PostAsync(cfg, body, ct);
+    }
+
+    private async Task<string> PostAsync(AgentConfig cfg, object body, CancellationToken ct)
+    {
         using var req = new HttpRequestMessage(HttpMethod.Post, cfg.Url.TrimEnd('/') + "/api/coleta") { Content = JsonContent.Create(body) };
         req.Headers.Add("X-Agent-Key", cfg.Key);
-        using var res = await Http.SendAsync(req, ct);
+        HttpClient http;
+        lock (HttpGate) http = Http;
+        using var res = await http.SendAsync(req, ct);
         if (res.StatusCode == HttpStatusCode.Unauthorized) throw new InvalidOperationException("chave recusada pelo painel");
         res.EnsureSuccessStatusCode();
         var answer = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
@@ -289,7 +331,8 @@ public sealed class PanelAgent : IDisposable
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
         budget.CancelAfter(TimeSpan.FromSeconds(45));
 
-        if (_ownsMonitor) _monitor.Refresh();
+        // No modo agente, Refresh() pode travar para sempre após queda de Wi‑Fi; usa última leitura dos sensores.
+        if (!_ownsMonitor) _monitor.Refresh();
         if ((DateTime.Now - _slowAt).TotalMinutes >= 30)
         {
             _slowAt = DateTime.Now;
@@ -481,19 +524,24 @@ public sealed class PanelAgent : IDisposable
 
     public static bool TaskInstalled() => Schtasks($"/query /tn \"{TaskName}\"") == 0;
 
-    /// <summary>Cria a tarefa que abre o TI-GA.exe --agente ao ligar o PC, com privilégio máximo (sem UAC). Exige administrador.</summary>
+    /// <summary>Cria tarefas que abrem o TI-GA.exe --agente ao ligar o PC e no logon (backup). Exige administrador.</summary>
     public static void InstallTask()
     {
         string exe = Environment.ProcessPath ?? throw new InvalidOperationException("Caminho do executável desconhecido.");
-        int code = Schtasks($"/create /f /tn \"{TaskName}\" /sc onstart /ru SYSTEM /rl highest /tr \"\\\"{exe}\\\" --agente\"");
-        if (code != 0) throw new InvalidOperationException($"schtasks falhou (código {code}).");
+        string tr = $"\\\"{exe}\\\" --agente";
+        // onstart: ao ligar o PC (aguarda 1 min para a rede subir). onlogon: se o agente não estiver rodando após login.
+        int code = Schtasks($"/create /f /tn \"{TaskName}\" /sc onstart /delay 0001:00 /ru SYSTEM /rl highest /tr \"{tr}\"");
+        if (code != 0) throw new InvalidOperationException($"schtasks falhou ao criar {TaskName} (código {code}).");
+        Schtasks($"/create /f /tn \"{LogonTaskName}\" /sc onlogon /ru SYSTEM /rl highest /tr \"{tr}\"");
         Schtasks($"/run /tn \"{TaskName}\"");
     }
 
     public static void RemoveTask()
     {
         Schtasks($"/end /tn \"{TaskName}\"");
+        Schtasks($"/end /tn \"{LogonTaskName}\"");
         Schtasks($"/delete /f /tn \"{TaskName}\"");
+        Schtasks($"/delete /f /tn \"{LogonTaskName}\"");
     }
 
     private static int Schtasks(string args)
